@@ -1,0 +1,2546 @@
+﻿#include <iostream.h>
+#include <fstream.h>
+#include <iomanip.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <vector>
+#include <map>
+  
+int irrad()
+{   
+    
+  gSystem->Load("libRooFit");
+  using namespace RooFit;
+
+  ////////////////////////////////////////////////////////////////////////////
+  // set graphics to clean
+  gROOT->Reset(); 
+  gROOT->SetStyle("Plain");
+  gStyle->SetOptStat("");
+  gStyle->SetPalette(1);
+    
+  ////////////////////////////////////////////////////////////////////////////
+  // prepare input files
+  const Int_t nifiles = 31;
+  ifstream ifile[nifiles];
+    
+  Bool_t fullVCSELdiode = false;
+  Bool_t preparepdf = false;
+
+  // name input files
+  TString n_ifile[nifiles];
+  n_ifile[0] = "input/board1_ped-pre.txt";
+  n_ifile[1] = "input/board2_ped-pre.txt";
+  n_ifile[2] = "input/board1_ped-post.txt";
+  n_ifile[3] = "input/board2_ped-post.txt";
+  n_ifile[4] = "input/board1.txt";
+  n_ifile[5] = "input/board2.txt";
+
+  n_ifile[6] = "input/board1-R2_ped-pre.txt";
+  n_ifile[7] = "input/board2-R2_ped-pre.txt";
+  n_ifile[8] = "input/board1-R2_ped-post.txt";
+  n_ifile[9] = "input/board2-R2_ped-post.txt";
+  n_ifile[10] = "input/board1-R2_ped-mid.txt";
+  n_ifile[11] = "input/board2-R2_ped-mid.txt";
+  n_ifile[12] = "input/board1-R2.txt";
+  n_ifile[13] = "input/board2-R2.txt";
+
+  if (fullVCSELdiode) {
+    n_ifile[14] = "input/board1-VCSEL_full.txt";
+    n_ifile[15] = "input/board2-VCSEL_full.txt";
+    n_ifile[16] = "input/board1-diode_full.txt";
+    n_ifile[17] = "input/board2-diode_full.txt";
+    
+    n_ifile[18] = "input/board1-R2-VCSEL_full.txt";
+    n_ifile[19] = "input/board2-R2-VCSEL_full.txt";
+    n_ifile[20] = "input/board1-R2-diode_full.txt";
+    n_ifile[21] = "input/board2-R2-diode_full.txt";
+  } else {
+    n_ifile[14] = "input/board1-VCSEL.txt";
+    n_ifile[15] = "input/board2-VCSEL.txt";
+    n_ifile[16] = "input/board1-diode.txt";
+    n_ifile[17] = "input/board2-diode.txt";
+
+    n_ifile[18] = "input/board1-R2-VCSEL.txt";
+    n_ifile[19] = "input/board2-R2-VCSEL.txt";
+    n_ifile[20] = "input/board1-R2-diode.txt";
+    n_ifile[21] = "input/board2-R2-diode.txt";
+  }
+
+   n_ifile[22] = "input/OK_ped-pre.txt";
+   n_ifile[23] = "input/OK_ped-post.txt";
+   n_ifile[24] = "input/OK.txt";
+
+   n_ifile[25] = "input/OK-R2_ped-pre.txt";
+   n_ifile[26] = "input/OK-R2_ped-mid.txt";
+   n_ifile[27] = "input/OK-R2_ped-post.txt";
+   n_ifile[28] = "input/OK-R2.txt";
+
+   n_ifile[29] = "input/OK-diode.txt";
+
+   n_ifile[30] = "input/OK-R2-diode.txt";
+
+  ////////////////////////////////////////////////////////////////////////////
+  // prepare output files
+  const Int_t nofiles = 2;
+  ofstream ofile[nofiles];
+
+  // name output files
+  TString n_ofile[nofiles];
+  n_ofile[0] = "output/output.txt";
+  n_ofile[1] = "output/results.txt";
+
+  ////////////////////////////////////////////////////////////////////////////
+  //prepare pinpack information
+  const Int_t nruns = 2;
+  const Int_t nboards = 2;
+  const Int_t npacks = 8;
+  const Int_t nOKpacks = 2;
+  const Int_t npacksperboard = 4;
+  const Int_t nchannelsperpack = 8;
+
+  TString packname[nruns][npacks];
+  packname[0][0] = "P0930";
+  packname[0][1] = "P0919";
+  packname[0][2] = "P0920";
+  packname[0][3] = "P0929";
+  packname[0][4] = "P0912";
+  packname[0][5] = "P0922";
+  packname[0][6] = "P0927";
+  packname[0][7] = "P0938";
+
+  packname[1][0] = "P0924b"; // in data file at P0929
+  packname[1][1] = "P0904b";
+  packname[1][2] = "P0905b";
+  packname[1][3] = "P0906b";
+  packname[1][4] = "P0907b";
+  packname[1][5] = "P0909b";
+  packname[1][6] = "P0910b";
+  packname[1][7] = "P0913b";
+
+  TString OKpackname[nruns][nOKpacks];
+  OKpackname[0][0] = "OK-PO923";
+  OKpackname[0][1] = "OK-PO926";
+
+  OKpackname[1][0] = "OK-PO911b";
+  OKpackname[1][1] = "OK-PO918b";
+    
+  TString vcselname[nruns][npacks];
+  vcselname[0][0] = "VCSEL1";
+  vcselname[0][1] = "VCSEL2";
+  vcselname[0][2] = "VCSEL3"; 
+  vcselname[0][3] = "VCSEL4";
+  vcselname[0][4] = "VCSEL5";
+  vcselname[0][5] = "VCSEL6";
+  vcselname[0][6] = "VCSEL7";
+  vcselname[0][7] = "VCSEL8";
+   
+  vcselname[1][0] = "VCSEL1b";
+  vcselname[1][1] = "VCSEL2b";
+  vcselname[1][2] = "VCSEL3b"; 
+  vcselname[1][3] = "VCSEL4b";
+  vcselname[1][4] = "VCSEL5b";
+  vcselname[1][5] = "VCSEL6b";
+  vcselname[1][6] = "VCSEL7b";
+  vcselname[1][7] = "VCSEL8b";
+  
+  TString diodename[nruns][npacks];
+  diodename[0][0] = "diode1";
+  diodename[0][1] = "diode2";
+  diodename[0][2] = "diode3";
+  diodename[0][3] = "diode4";
+  diodename[0][4] = "diode5";
+  diodename[0][5] = "diode6";
+  diodename[0][6] = "diode7";
+  diodename[0][7] = "diode8";
+  
+  diodename[1][0] = "diode1b";
+  diodename[1][1] = "diode2b";
+  diodename[1][2] = "diode3b";
+  diodename[1][3] = "diode4b"; 
+  diodename[1][4] = "diode5b"; 
+  diodename[1][5] = "diode6b";
+  diodename[1][6] = "diode7b";
+  diodename[1][7] = "diode8b";
+  
+  TString OKdiodename[nruns][nOKpacks];
+  OKdiodename[0][0] = "OK-diode1";
+  OKdiodename[0][1] = "OK-diode2";
+  
+  OKdiodename[1][0] = "OK-diode1b";
+  OKdiodename[1][1] = "OK-diode2b";
+
+  ////////////////////////////////////////////////////////////////////////////
+  // open output files
+  for (Int_t file = 0; file < nofiles; ++file) {
+    ofile[file].open(n_ofile[file]);
+    if (!ofile[file]) {
+      cout << "Unable to open "<< n_ofile[file] << endl;
+      return 1;      
+    } else {
+      cout << "Opened " << n_ofile[file] << endl;
+    }
+  }
+  
+  /////////////////////////////////////////////////////////////////////////////
+
+  /////////////////////////////////////////////////////////////////////////////
+  // open input files
+  for (Int_t file = 0; file < nifiles; ++file) {
+    ifile[file].open(n_ifile[file]);
+    if (!ifile[file]) {
+      cout << "Unable to open "<< n_ifile[file] << endl;
+      return 1;
+    } else {
+      cout << "Opened " << n_ifile[file] << endl;
+    }
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // loop through input files for each board for each run
+
+  // vectors to hold pedestal currents
+  vector<Double_t> v_pedcurr[nruns][npacks][nchannelsperpack];
+  vector<Double_t> v_pedcurr_mid[npacks][nchannelsperpack];
+  vector<Double_t> v_pedcurr_post[nruns][npacks][nchannelsperpack];
+
+  vector<Double_t> v_OKpedcurr[nruns][nOKpacks][nchannelsperpack];
+  vector<Double_t> v_OKpedcurr_mid[nOKpacks][nchannelsperpack];
+  vector<Double_t> v_OKpedcurr_post[nruns][nOKpacks][nchannelsperpack];
+
+  // vectors to hold time and currents
+  vector<Double_t> v_time[nruns][npacks][nchannelsperpack];
+  vector<Double_t> v_curr[nruns][npacks][nchannelsperpack];
+
+  vector<Double_t> v_OKtime[nruns][nOKpacks][nchannelsperpack];
+  vector<Double_t> v_OKcurr[nruns][nOKpacks][nchannelsperpack];
+
+  // to determine histogram binning
+  map<Int_t,Int_t> m_timebin[nruns][npacks][nchannelsperpack];
+
+  map<Int_t,Int_t> m_OKtimebin[nruns][nOKpacks][nchannelsperpack];
+
+  // vectors to hold vcsel currents
+  vector<Double_t> v_vcselcurr[nruns][npacks][nchannelsperpack];
+
+  // vectors to hold diode currents
+  vector<Double_t> v_diodecurr[nruns][npacks][nchannelsperpack];
+
+  vector<Double_t> v_OKdiodecurr[nruns][nOKpacks][nchannelsperpack];
+
+  // loop through the runs
+  for (Int_t run = 0; run < nruns; ++run) {
+
+    // loop through the boards
+    for (Int_t board = 0; board < nboards; ++board) {
+      ofile[0] << "Filling pre pedestals from board " << board+1
+               << " for run " << run+1 << endl;
+
+      Int_t file = board + 6 * run;
+
+      // loop through ped pre files
+      while (!ifile[file].eof()) {
+
+        Double_t pedcurr[npacksperboard][nchannelsperpack];
+
+        ifile[file] >> pedcurr[0][0] >> pedcurr[0][1] >> pedcurr[0][2]
+                    >> pedcurr[0][3] >> pedcurr[0][4] >> pedcurr[0][5]
+                    >> pedcurr[0][6] >> pedcurr[0][7]
+                    >> pedcurr[1][0] >> pedcurr[1][1] >> pedcurr[1][2]
+                    >> pedcurr[1][3] >> pedcurr[1][4] >> pedcurr[1][5]
+                    >> pedcurr[1][6] >> pedcurr[1][7]
+                    >> pedcurr[2][0] >> pedcurr[2][1] >> pedcurr[2][2]
+                    >> pedcurr[2][3] >> pedcurr[2][4] >> pedcurr[2][5]
+                    >> pedcurr[2][6] >> pedcurr[2][7]
+                    >> pedcurr[3][0] >> pedcurr[3][1] >> pedcurr[3][2]
+                    >> pedcurr[3][3] >> pedcurr[3][4] >> pedcurr[3][5]
+                    >> pedcurr[3][6] >> pedcurr[3][7];
+  
+        // fill appropriate vectors
+        for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+          v_pedcurr[run][4*board][channel].push_back(pedcurr[0][channel]);
+          v_pedcurr[run][4*board+1][channel].push_back(pedcurr[1][channel]);
+          v_pedcurr[run][4*board+2][channel].push_back(pedcurr[2][channel]);
+          v_pedcurr[run][4*board+3][channel].push_back(pedcurr[3][channel]);
+        } // end loop through channels
+      } // end processing through ped input file
+
+      // OK ped pre files
+      if (board == 0) {
+  
+        ofile[0] << "Filling OK pre pedestals"
+                 << " for run " << run+1 << endl;
+        
+        file = board + 22 + 3 * run;
+
+        while (!ifile[file].eof()) {
+          
+          Double_t pedcurr[nOKpacks][nchannelsperpack];
+          
+          ifile[file] >> pedcurr[0][0] >> pedcurr[0][1] >> pedcurr[0][2]
+                      >> pedcurr[0][3] >> pedcurr[0][4] >> pedcurr[0][5]
+                      >> pedcurr[0][6] >> pedcurr[0][7]
+                      >> pedcurr[1][0] >> pedcurr[1][1] >> pedcurr[1][2]
+                      >> pedcurr[1][3] >> pedcurr[1][4] >> pedcurr[1][5]
+                      >> pedcurr[1][6] >> pedcurr[1][7];
+
+          // fill appropriate vectors
+          for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+            v_OKpedcurr[run][4*board][channel].push_back(pedcurr[0][channel]);
+            v_OKpedcurr[run][4*board+1][channel].
+              push_back(pedcurr[1][channel]);
+          } // end loop through channels
+        } // end processing through ped input file
+      }
+
+      // loop through ped post files
+      ofile[0] << "Filling post pedestals from board " << board+1
+               << " for run " << run+1 << endl;
+
+      file = board + 2 + 6 * run;
+      while (!ifile[file].eof()) {
+        
+        Double_t pedcurr[npacksperboard][nchannelsperpack];
+
+        ifile[file] >> pedcurr[0][0] >> pedcurr[0][1] >> pedcurr[0][2]
+                    >> pedcurr[0][3] >> pedcurr[0][4] >> pedcurr[0][5]
+                    >> pedcurr[0][6] >> pedcurr[0][7] 
+                    >> pedcurr[1][0] >> pedcurr[1][1] >> pedcurr[1][2]
+                    >> pedcurr[1][3] >> pedcurr[1][4] >> pedcurr[1][5]
+                    >> pedcurr[1][6] >> pedcurr[1][7]
+                    >> pedcurr[2][0] >> pedcurr[2][1] >> pedcurr[2][2]
+                    >> pedcurr[2][3] >> pedcurr[2][4] >> pedcurr[2][5]
+                    >> pedcurr[2][6] >> pedcurr[2][7]
+                    >> pedcurr[3][0] >> pedcurr[3][1] >> pedcurr[3][2]
+                    >> pedcurr[3][3] >> pedcurr[3][4] >> pedcurr[3][5]
+                    >> pedcurr[3][6] >> pedcurr[3][7];
+
+        // fill appropriate vectors
+        for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+          v_pedcurr_post[run][4*board][channel].push_back(pedcurr[0][channel]);
+          v_pedcurr_post[run][4*board+1][channel].
+            push_back(pedcurr[1][channel]);
+          v_pedcurr_post[run][4*board+2][channel].
+            push_back(pedcurr[2][channel]);
+          v_pedcurr_post[run][4*board+3][channel].
+            push_back(pedcurr[3][channel]);
+        } // end loop through channels
+      } // end processing through ped input file
+
+      // OK ped post files
+      if (board == 0) {
+
+        ofile[0] << "Filling OK post pedestals"
+                 << " for run " << run+1 << endl;
+
+        file = board + 23 + 4 * run;
+
+        while (!ifile[file].eof()) {
+
+          Double_t pedcurr[nOKpacks][nchannelsperpack];
+
+          ifile[file] >> pedcurr[0][0] >> pedcurr[0][1] >> pedcurr[0][2]
+                      >> pedcurr[0][3] >> pedcurr[0][4] >> pedcurr[0][5]
+                      >> pedcurr[0][6] >> pedcurr[0][7]
+                      >> pedcurr[1][0] >> pedcurr[1][1] >> pedcurr[1][2]
+                      >> pedcurr[1][3] >> pedcurr[1][4] >> pedcurr[1][5]
+                      >> pedcurr[1][6] >> pedcurr[1][7];
+
+          // fill appropriate vectors
+          for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+            v_OKpedcurr_post[run][4*board][channel].
+              push_back(pedcurr[0][channel]);
+            v_OKpedcurr_post[run][4*board+1][channel].
+              push_back(pedcurr[1][channel]);
+          } // end loop through channels
+        } // end processing through ped input file
+      }
+
+      // loop through ped mid files
+      if (run == 1) {
+        ofile[0] << "Filling mid pedestals from board " << board+1
+                 << " for run " << run+1 << endl;
+
+        file = board + 4 + 6 * run;
+
+        while (!ifile[file].eof()) {
+
+          Double_t pedcurr[npacksperboard][nchannelsperpack];
+
+          ifile[file] >> pedcurr[0][0] >> pedcurr[0][1] >> pedcurr[0][2]
+                      >> pedcurr[0][3] >> pedcurr[0][4] >> pedcurr[0][5]
+                      >> pedcurr[0][6] >> pedcurr[0][7]
+                      >> pedcurr[1][0] >> pedcurr[1][1] >> pedcurr[1][2]
+                      >> pedcurr[1][3] >> pedcurr[1][4] >> pedcurr[1][5]
+                      >> pedcurr[1][6] >> pedcurr[1][7]
+                      >> pedcurr[2][0] >> pedcurr[2][1] >> pedcurr[2][2]
+                      >> pedcurr[2][3] >> pedcurr[2][4] >> pedcurr[2][5]
+                      >> pedcurr[2][6] >> pedcurr[2][7]
+                      >> pedcurr[3][0] >> pedcurr[3][1] >> pedcurr[3][2]
+                      >> pedcurr[3][3] >> pedcurr[3][4] >> pedcurr[3][5]
+                      >> pedcurr[3][6] >> pedcurr[3][7];
+
+          // fill appropriate vectors
+          for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+            v_pedcurr_mid[4*board][channel].
+              push_back(pedcurr[0][channel]);
+            v_pedcurr_mid[4*board+1][channel].
+              push_back(pedcurr[1][channel]);
+            v_pedcurr_mid[4*board+2][channel].
+              push_back(pedcurr[2][channel]);
+            v_pedcurr_mid[4*board+3][channel].
+              push_back(pedcurr[3][channel]);
+          } // end loop through channels
+        } // end processing through ped input file
+
+        // OK ped mid files
+        if (board == 0) { 
+
+          ofile[0] << "Filling OK mid pedestals"
+                   << " for run " << run+1 << endl;
+
+          file = board + 22 + 4 * run;
+
+          while (!ifile[file].eof()) { 
+
+            Double_t pedcurr[nOKpacks][nchannelsperpack];
+
+            ifile[file] >> pedcurr[0][0] >> pedcurr[0][1] >> pedcurr[0][2]
+                        >> pedcurr[0][3] >> pedcurr[0][4] >> pedcurr[0][5]
+                        >> pedcurr[0][6] >> pedcurr[0][7]
+                        >> pedcurr[1][0] >> pedcurr[1][1] >> pedcurr[1][2]
+                        >> pedcurr[1][3] >> pedcurr[1][4] >> pedcurr[1][5]
+                        >> pedcurr[1][6] >> pedcurr[1][7];
+
+            // fill appropriate vectors
+            for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+              v_OKpedcurr_mid[4*board][channel].
+                push_back(pedcurr[0][channel]);
+              v_OKpedcurr_mid[4*board+1][channel].
+                push_back(pedcurr[1][channel]);
+            } // end loop through channels
+          } // end processing through ped input file       
+        }
+      } // check if mid file exists
+
+      // currents and times
+      ofile[0] << "Filling currents and times from board " << board+1
+               << " for run " << run+1 << endl;
+
+      file = board + 4 + 8 * run;
+
+      Bool_t firstloop = true;
+      Double_t prevtime = 0.0;
+
+      while (!ifile[file].eof()) {
+
+        Double_t time;
+        Double_t curr[npacksperboard][nchannelsperpack];
+
+        ifile[file] >> time
+                    >> curr[0][0] >> curr[0][1] >> curr[0][2]
+                    >> curr[0][3] >> curr[0][4] >> curr[0][5]
+                    >> curr[0][6] >> curr[0][7]
+                    >> curr[1][0] >> curr[1][1] >> curr[1][2]
+                    >> curr[1][3] >> curr[1][4] >> curr[1][5]
+                    >> curr[1][6] >> curr[1][7]
+                    >> curr[2][0] >> curr[2][1] >> curr[2][2]
+                    >> curr[2][3] >> curr[2][4] >> curr[2][5]
+                    >> curr[2][6] >> curr[2][7]
+                    >> curr[3][0] >> curr[3][1] >> curr[3][2]
+                    >> curr[3][3] >> curr[3][4] >> curr[3][5]
+                    >> curr[3][6] >> curr[3][7];
+
+        if (!firstloop) {
+          Int_t timediff = time - prevtime;
+
+          // check for problem in timing
+          if (timediff <= 0) {
+            cout << "Problem with the time ordering in board " << board+1
+                 << ". Please fix." << endl;
+            return 3;
+          }
+
+          for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+            ++m_timebin[run][4*board][channel][timediff];
+            ++m_timebin[run][4*board+1][channel][timediff];
+            ++m_timebin[run][4*board+2][channel][timediff];
+            ++m_timebin[run][4*board+3][channel][timediff];
+          }
+        }
+        firstloop = false;
+        prevtime = time;
+
+        // fill appropriate vectors
+        for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+          v_curr[run][4*board][channel].push_back(curr[0][channel]);
+          v_curr[run][4*board+1][channel].push_back(curr[1][channel]);
+          v_curr[run][4*board+2][channel].push_back(curr[2][channel]);
+          v_curr[run][4*board+3][channel].push_back(curr[3][channel]);
+
+          v_time[run][4*board][channel].push_back(time);
+          v_time[run][4*board+1][channel].push_back(time);
+          v_time[run][4*board+2][channel].push_back(time);
+          v_time[run][4*board+3][channel].push_back(time);
+        } // end loop through channels
+      } // end processing through current input file
+
+      // OK ped post files
+      if (board == 0) {
+        ofile[0] << "Filling OK currents and times"
+                 << " for run " << run+1 << endl;
+
+        file = board + 24 + 4 * run;
+        
+        firstloop = true;
+        prevtime = 0.0;
+
+        while (!ifile[file].eof()) {
+          
+          Double_t time;
+          Double_t curr[nOKpacks][nchannelsperpack];
+
+          ifile[file] >> time  
+                      >> curr[0][0] >> curr[0][1] >> curr[0][2]
+                      >> curr[0][3] >> curr[0][4] >> curr[0][5]
+                      >> curr[0][6] >> curr[0][7]
+                      >> curr[1][0] >> curr[1][1] >> curr[1][2]
+                      >> curr[1][3] >> curr[1][4] >> curr[1][5]
+                      >> curr[1][6] >> curr[1][7]; 
+
+          if (!firstloop) {
+            Int_t timediff = time - prevtime;
+
+            // check for problem in timing
+            if (timediff <= 0) {
+              cout << "Problem with the time ordering in OK data"
+                   << ". Please fix." << endl;
+              return 3;
+            }
+
+            for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+              ++m_OKtimebin[run][4*board][channel][timediff];
+              ++m_OKtimebin[run][4*board+1][channel][timediff];
+            }
+          }
+          firstloop = false;
+          prevtime = time;
+
+          // fill appropriate vectors
+          for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+            v_OKcurr[run][4*board][channel].push_back(curr[0][channel]);
+            v_OKcurr[run][4*board+1][channel].push_back(curr[1][channel]);
+            
+            v_OKtime[run][4*board][channel].push_back(time);
+            v_OKtime[run][4*board+1][channel].push_back(time);
+          } // end loop through channels
+        } // end processing through current input file
+      }
+
+      // VCSEL currents
+      ofile[0] << "Filling VCSEL currents from board " << board+1
+               << " for run " << run+1 << endl;
+
+      file = board + 14 + 4 * run;
+
+      // loop through VCSEL files
+      while (!ifile[file].eof()) {
+
+        Double_t curr[npacksperboard][nchannelsperpack];
+         
+        ifile[file] >> curr[0][0] >> curr[0][1] >> curr[0][2]
+                    >> curr[0][3] >> curr[0][4] >> curr[0][5]
+                    >> curr[0][6] >> curr[0][7]
+                    >> curr[1][0] >> curr[1][1] >> curr[1][2]
+                    >> curr[1][3] >> curr[1][4] >> curr[1][5]
+                    >> curr[1][6] >> curr[1][7]
+                    >> curr[2][0] >> curr[2][1] >> curr[2][2]
+                    >> curr[2][3] >> curr[2][4] >> curr[2][5]
+                    >> curr[2][6] >> curr[2][7]
+                    >> curr[3][0] >> curr[3][1] >> curr[3][2]
+                    >> curr[3][3] >> curr[3][4] >> curr[3][5]
+                    >> curr[3][6] >> curr[3][7];
+
+        // fill appropriate vectors
+        for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+          v_vcselcurr[run][4*board][channel].push_back(curr[0][channel]);
+          v_vcselcurr[run][4*board+1][channel].push_back(curr[1][channel]);
+          v_vcselcurr[run][4*board+2][channel].push_back(curr[2][channel]);
+          v_vcselcurr[run][4*board+3][channel].push_back(curr[3][channel]);
+        } // end loop through channels
+      } // end processing through vcsel input file
+
+      // diode currents
+      ofile[0] << "Filling diode currents from board " << board+1
+               << " for run " << run+1 << endl;
+
+      file = board + 16 + 4 * run;
+
+      // loop through diode files
+      while (!ifile[file].eof()) {
+
+        Double_t curr[npacksperboard][nchannelsperpack];
+
+        ifile[file] >> curr[0][0] >> curr[0][1] >> curr[0][2]
+                    >> curr[0][3] >> curr[0][4] >> curr[0][5]
+                    >> curr[0][6] >> curr[0][7]
+                    >> curr[1][0] >> curr[1][1] >> curr[1][2]
+                    >> curr[1][3] >> curr[1][4] >> curr[1][5]
+                    >> curr[1][6] >> curr[1][7]
+                    >> curr[2][0] >> curr[2][1] >> curr[2][2]
+                    >> curr[2][3] >> curr[2][4] >> curr[2][5]
+                    >> curr[2][6] >> curr[2][7]
+                    >> curr[3][0] >> curr[3][1] >> curr[3][2]
+                    >> curr[3][3] >> curr[3][4] >> curr[3][5]
+                    >> curr[3][6] >> curr[3][7];
+
+        // fill appropriate vectors
+        for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+          v_diodecurr[run][4*board][channel].push_back(curr[0][channel]);
+          v_diodecurr[run][4*board+1][channel].push_back(curr[1][channel]);
+          v_diodecurr[run][4*board+2][channel].push_back(curr[2][channel]);
+          v_diodecurr[run][4*board+3][channel].push_back(curr[3][channel]);
+        } // end loop through channels
+      } // end processing through diode input file
+
+      // OK diode files
+      if (board == 0) {
+
+        ofile[0] << "Filling OK diode currents"
+                 << " for run " << run+1 << endl;
+
+        file = board + 29 + run;
+
+        // loop through diode files
+        while (!ifile[file].eof()) { 
+
+          Double_t curr[nOKpacks][nchannelsperpack];
+
+          ifile[file] >> curr[0][0] >> curr[0][1] >> curr[0][2]
+                      >> curr[0][3] >> curr[0][4] >> curr[0][5]
+                      >> curr[0][6] >> curr[0][7]
+                      >> curr[1][0] >> curr[1][1] >> curr[1][2]
+                      >> curr[1][3] >> curr[1][4] >> curr[1][5]
+                      >> curr[1][6] >> curr[1][7];
+          
+          // fill appropriate vectors
+          for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+            v_OKdiodecurr[run][4*board][channel].push_back(curr[0][channel]);
+            v_OKdiodecurr[run][4*board+1][channel].push_back(curr[1][channel]);
+          } // end loop through channels
+        } // end processing through diode input file
+      } 
+
+    } // end loop through boards
+  } // end loop through runs
+
+  /////////////////////////////////////////////////////////////////////////////
+  // prepare output root file 
+  ofile[0] << "Creating output root file" << endl;
+  TFile* irradfile = new TFile("output/irrad.root","RECREATE");
+
+  /////////////////////////////////////////////////////////////////////////////
+  // create histograms and fit functions
+  ofile[0] << "Creating histograms" << endl;
+
+  // directories for each pin pack in ped and current
+  TDirectory *cdpinpack;
+
+  // directory for pedestals
+  TDirectory *cdped = irradfile->mkdir("pedestal");
+
+  // directory for pedestal vs. time 
+  TDirectory *cdpedvtime = irradfile->mkdir("ped_vs_time");
+
+  // directory for currents
+  TDirectory *cdcvt = irradfile->mkdir("current_vs_time");
+
+  // directory for vcsels vs. time
+  TDirectory *cdvcselvtime = irradfile->mkdir("vcsel_vs_time");
+
+  // directory for diodes vs. time
+  TDirectory *cddiodevtime = irradfile->mkdir("diode_vs_time");  
+
+  // histograms for pedestals on current readings
+  TH1F* hped_pre[nruns][npacks][nchannelsperpack];
+  TH1F* hped_mid[npacks][nchannelsperpack];
+  TH1F* hped_post[nruns][npacks][nchannelsperpack];
+
+  TH1F* hOKped_pre[nruns][nOKpacks][nchannelsperpack];
+  TH1F* hOKped_mid[nOKpacks][nchannelsperpack];
+  TH1F* hOKped_post[nruns][nOKpacks][nchannelsperpack];
+
+  // histograms for pedestals vs. time
+  TH1F* hped_prevtime[nruns][npacks][nchannelsperpack];
+  TH1F* hped_midvtime[npacks][nchannelsperpack];
+  TH1F* hped_postvtime[nruns][npacks][nchannelsperpack];
+
+  TH1F* hOKped_prevtime[nruns][nOKpacks][nchannelsperpack];
+  TH1F* hOKped_midvtime[nOKpacks][nchannelsperpack];
+  TH1F* hOKped_postvtime[nruns][nOKpacks][nchannelsperpack];
+
+  // histograms for current readings vs. time
+  TH1F* hcvt[nruns][npacks][nchannelsperpack];
+
+  TH1F* hOKcvt[nruns][nOKpacks][nchannelsperpack];
+
+  // histograms for vcsels vs. time
+  TH1F* hvcselvtime[nruns][npacks][nchannelsperpack];
+
+  // histograms for diodes vs. time
+  TH1F* hdiodevtime[nruns][npacks][nchannelsperpack];
+
+  TH1F* hOKdiodevtime[nruns][nOKpacks][nchannelsperpack];
+
+  // histograms for sigma vs. channel
+  TH1F* hsigmas[nruns][nboards];
+
+  // histograms for current ratio vs. channel
+  TH1F* hratio[nruns][npacks];
+  TH1F* hOKratio[nruns][nOKpacks];
+
+  // holders for directory, histogram and titles
+  char dirname[50];
+  char hname[30];
+  char htitle[80];
+
+  // loop through the runs
+  for (Int_t run = 0; run < nruns; ++run) {
+
+    // loop through the packs
+    for (Int_t pack = 0; pack < npacks; ++pack) {
+
+      // set electronic board number
+      Int_t eboard;
+      if (pack == 0 || pack == 1 || pack == 2 || pack == 3) {
+        eboard = 0;
+      } else {
+        eboard = 1;
+      }
+
+      irradfile->cd();
+
+      // convert from TString to string for pack names
+      string npack = packname[run][pack];
+
+      sprintf(hname,"h%s_ratio",npack.c_str());
+      sprintf(htitle,"%s ratios",
+              npack.c_str());
+
+      hratio[run][pack] = new TH1F(hname,htitle,
+                                   12,
+                                   1.,
+                                   13.);
+
+      // set directory name to pack name
+      sprintf(dirname,"%s",npack.c_str());
+      
+      // create pack directory in pedestal directory
+      cdpinpack = cdped->mkdir(dirname);
+      
+      // move to that directory
+      cdpinpack->cd();
+      
+      // create pedestal histograms
+
+      // binning for pedestals
+      Double_t pedres = 0.001;
+      Int_t padding = 100;
+      
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+        
+        // set echannel
+        Int_t echannel = 8*(pack-4*eboard)+channel;
+
+        // pre pedestals
+        sprintf(hname,"h%s_c%d_ped_pre",npack.c_str(),channel);
+        sprintf(htitle,"%s channel %d current pedestal pre (b%dc%d)",
+                npack.c_str(),channel+3,eboard+1,echannel+1);
+        
+        // find min and max values
+        Double_t pedlow = *min_element(v_pedcurr[run][pack][channel].begin(),
+                                       v_pedcurr[run][pack][channel].end());
+        Double_t pedhigh = *max_element(v_pedcurr[run][pack][channel].begin(),
+                                        v_pedcurr[run][pack][channel].end());
+        
+        // find ped res
+        Double_t npedbins = (pedhigh - pedlow) / pedres;
+        //Double_t npedbins = 4;
+        //pedres = (pedhigh - pedlow) / npedbins;
+
+        hped_pre[run][pack][channel] = new TH1F(hname,htitle,
+                                                npedbins+padding*2,
+                                                pedlow-padding*pedres,
+                                                pedhigh+padding*pedres);
+         
+        // set axis labels
+        hped_pre[run][pack][channel]->GetXaxis()->SetTitle("current (mA)");
+        hped_pre[run][pack][channel]->GetYaxis()->SetTitle("entries");
+       
+        pedres = 0.001;
+
+        // post pedestals
+        sprintf(hname,"h%s_c%d_ped_post",npack.c_str(),channel);
+        sprintf(htitle,"%s channel %d current pedestal post (b%dc%d)",
+                npack.c_str(),channel+3,eboard+1,echannel+1);
+        
+        // find min and max values
+        pedlow = *min_element(v_pedcurr_post[run][pack][channel].begin(),
+                              v_pedcurr_post[run][pack][channel].end());
+        pedhigh = *max_element(v_pedcurr_post[run][pack][channel].begin(),
+                               v_pedcurr_post[run][pack][channel].end());
+
+        // find ped res
+        npedbins = (pedhigh - pedlow) / pedres;
+        
+        hped_post[run][pack][channel] = new TH1F(hname,htitle,
+                                                 npedbins+padding*2,
+                                                 pedlow-padding*pedres,
+                                                 pedhigh+padding*pedres);
+
+        // set axis labels
+        hped_post[run][pack][channel]->GetXaxis()->SetTitle("current (mA)");
+        hped_post[run][pack][channel]->GetYaxis()->SetTitle("entries");
+
+        // mid pedestals
+        if (run == 1) {
+          sprintf(hname,"h%s_c%d_ped_mid",npack.c_str(),channel);
+          sprintf(htitle,"%s channel %d current pedestal mid (b%dc%d)",
+                  npack.c_str(),channel+3,eboard+1,echannel+1);
+
+          // find min and max values
+          pedlow = *min_element(v_pedcurr_mid[pack][channel].begin(),
+                                v_pedcurr_mid[pack][channel].end());
+          pedhigh = *max_element(v_pedcurr_mid[pack][channel].begin(),
+                                 v_pedcurr_mid[pack][channel].end());
+
+          // find ped res
+          npedbins = (pedhigh - pedlow) / pedres;
+
+          hped_mid[pack][channel] = new TH1F(hname,htitle,
+                                             npedbins+padding*2,
+                                             pedlow-padding*pedres,
+                                             pedhigh+padding*pedres);
+
+          // set axis labels
+          hped_mid[pack][channel]->GetXaxis()->SetTitle("current (mA)");
+          hped_mid[pack][channel]->GetYaxis()->SetTitle("entries");
+        }
+      } // end loop through channels
+
+      // create pack directory in ped vs. time directory
+      cdpinpack = cdpedvtime->mkdir(dirname);
+
+      // move to that directory
+      cdpinpack->cd();
+
+      // create pedestal vs time histograms
+
+      // binning for pedestals
+      Int_t npedvtimebins = v_pedcurr[run][0][0].size();
+      Int_t npedmidvtimebins = v_pedcurr_mid[0][0].size();
+      Int_t npedpostvtimebins = v_pedcurr_post[run][0][0].size();
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // set echannel
+        Int_t echannel = 8*(pack-4*eboard)+channel;
+
+        // pre pedestals
+        sprintf(hname,"h%s_c%d_pvt_pre",npack.c_str(),channel);
+        sprintf(htitle,"%s channel %d current pedestal vs. time pre (b%dc%d)",
+                npack.c_str(),channel+3,eboard+1,echannel+1);
+
+
+        hped_prevtime[run][pack][channel] = new TH1F(hname,htitle,
+                                                     npedvtimebins+1,
+                                                     0.,npedvtimebins+1);
+
+        // set axis labels
+        hped_prevtime[run][pack][channel]->GetXaxis()->SetTitle("pseudotime");
+        hped_prevtime[run][pack][channel]->GetYaxis()->
+          SetTitle("current (mA)");
+        hped_prevtime[run][pack][channel]->Sumw2();
+
+        // post pedestals
+        sprintf(hname,"h%s_c%d_pvt_post",npack.c_str(),channel);
+        sprintf(htitle,"%s channel %d current pedestal vs. time post (b%dc%d)",
+                npack.c_str(),channel+3,eboard+1,echannel+1);
+
+
+        hped_postvtime[run][pack][channel] = new TH1F(hname,htitle,
+                                                      npedpostvtimebins+1,
+                                                      0.,npedpostvtimebins+1);
+
+        // set axis labels
+        hped_postvtime[run][pack][channel]->GetXaxis()->SetTitle("pseudotime");
+        hped_postvtime[run][pack][channel]->GetYaxis()->
+          SetTitle("current (mA)");
+        hped_postvtime[run][pack][channel]->Sumw2();
+
+        //mid pedestals
+        if (run == 1) {
+          sprintf(hname,"h%s_c%d_pvt_mid",npack.c_str(),channel);
+          sprintf(htitle,
+                  "%s channel %d current pedestal vs. time mid (b%dc%d)",
+                  npack.c_str(),channel+3,eboard+1,echannel+1);
+
+          hped_midvtime[pack][channel] = new TH1F(hname,htitle,
+                                                  npedmidvtimebins+1,
+                                                  0.,npedmidvtimebins+1);
+          
+          // set axis labels
+          hped_midvtime[pack][channel]->GetXaxis()->SetTitle("pseudotime");
+          hped_midvtime[pack][channel]->GetYaxis()->
+            SetTitle("current (mA)");
+          hped_midvtime[pack][channel]->Sumw2();
+        }
+      } // end loop through channels      
+
+      // create pack directory in current vs time directory
+      cdpinpack = cdcvt->mkdir(dirname);
+
+      // move to that directory
+      cdpinpack->cd();
+
+      // create current vs. histograms
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // set echannel
+        Int_t echannel = 8*(pack-4*eboard)+channel;
+
+        sprintf(hname,"h%s_c%d_cvt",npack.c_str(),channel);
+        sprintf(htitle,"%s channel %d current vs. time (b%dc%d)",
+                npack.c_str(),channel+3,eboard+1,echannel+1);
+
+        // determine histogram limits and binning
+        map<Int_t,Int_t>::iterator iter =
+          m_timebin[run][pack][channel].begin();
+
+        Int_t timebin = iter->first;
+        Double_t timelow = v_time[run][pack][channel][0];
+        Double_t timehigh =
+          v_time[run][pack][channel][v_time[run][pack][channel].size()-1];
+        Int_t ntbins = timehigh / timebin + 1;
+
+        // create histogram
+        hcvt[run][pack][channel] =
+          new TH1F(hname,htitle,ntbins,timelow,timehigh);
+
+        // set axis labels
+        hcvt[run][pack][channel]->GetXaxis()->SetTitle("time (s)");
+        hcvt[run][pack][channel]->GetYaxis()->SetTitle("current (mA)");
+        hcvt[run][pack][channel]->GetYaxis()->SetTitleOffset(1.2);
+        hcvt[run][pack][channel]->Sumw2();
+      } // end loop through channels
+
+      // create pack directory in vcsel vs. time directory
+
+      // convert from TString to string for pack names
+      string nvcsel = vcselname[run][pack];
+
+      // set directory name to pack name
+      sprintf(dirname,"%s",nvcsel.c_str());
+
+      cdpinpack = cdvcselvtime->mkdir(dirname);
+
+      // move to that directory
+      cdpinpack->cd();
+
+      // create vcsel vs time histograms
+
+      // binning for pedestals
+      Int_t nvcselvtimebins = v_vcselcurr[run][0][0].size();
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // set echannel
+        Int_t echannel = 8*(pack-4*eboard)+channel;
+
+        // pre pedestals
+        sprintf(hname,"h%s_c%d_vcselvt",nvcsel.c_str(),channel);
+        sprintf(htitle,"%s channel %d current VCSEL vs. time (b%dc%d)",
+                nvcsel.c_str(),channel+3,eboard+1,echannel+1);
+
+
+        if (fullVCSELdiode) {
+          hvcselvtime[run][pack][channel] = new TH1F(hname,htitle,
+                                                     nvcselvtimebins+1,
+                                                     0.,nvcselvtimebins+1);
+
+          // set axis labels
+          hvcselvtime[run][pack][channel]->GetXaxis()->SetTitle("pseudotime");
+          hvcselvtime[run][pack][channel]->GetYaxis()->
+            SetTitle("current (A)");
+          hvcselvtime[run][pack][channel]->Sumw2();
+        } else {
+
+          // determine histogram limits and binning
+          map<Int_t,Int_t>::iterator iter =
+            m_timebin[run][pack][channel].begin();
+          
+          Int_t timebin = iter->first;
+          Double_t timelow = v_time[run][pack][channel][0];
+          Double_t timehigh = 
+            v_time[run][pack][channel][v_time[run][pack][channel].size()-1];
+          Int_t ntbins = timehigh / timebin + 1;
+
+          hvcselvtime[run][pack][channel] = new TH1F(hname,htitle,
+                                                     ntbins,
+                                                     timelow,timehigh);
+
+          // set axis labels
+          hvcselvtime[run][pack][channel]->GetXaxis()->SetTitle("time (s)");
+          hvcselvtime[run][pack][channel]->GetYaxis()->
+            SetTitle("current (A)");
+          hvcselvtime[run][pack][channel]->Sumw2();
+        }
+      } // end loop through channels    
+
+      // create pack directory in diode vs. time directory
+
+      // convert from TString to string for pack names
+      string ndiode = diodename[run][pack];
+
+      // set directory name to pack name
+      sprintf(dirname,"%s",ndiode.c_str());
+
+      cdpinpack = cddiodevtime->mkdir(dirname);
+
+      // move to that directory
+      cdpinpack->cd();
+
+      // create diode vs time histograms
+
+      // binning for pedestals
+      Int_t ndiodevtimebins = v_diodecurr[run][0][0].size();
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // set echannel
+        Int_t echannel = 8*(pack-4*eboard)+channel;
+
+        // pre pedestals
+        sprintf(hname,"h%s_c%d_diodevt",ndiode.c_str(),channel);
+        sprintf(htitle,"%s channel %d current diode vs. time (b%dc%d)",
+                ndiode.c_str(),channel+3,eboard+1,echannel+1);
+
+        if (fullVCSELdiode) {
+          hdiodevtime[run][pack][channel] = new TH1F(hname,htitle,
+                                                     ndiodevtimebins+1,
+                                                     0.,ndiodevtimebins+1);
+
+          // set axis labels
+          hdiodevtime[run][pack][channel]->GetXaxis()->SetTitle("pseudotime");
+          hdiodevtime[run][pack][channel]->GetYaxis()->
+          hdiodevtime[run][pack][channel]->GetYaxis()->
+            SetTitle("current (A)");
+          hdiodevtime[run][pack][channel]->Sumw2();
+        } else {
+
+          // determine histogram limits and binning
+          map<Int_t,Int_t>::iterator iter =
+            m_timebin[run][pack][channel].begin();
+
+          Int_t timebin = iter->first;
+          Double_t timelow = v_time[run][pack][channel][0];
+          Double_t timehigh =
+            v_time[run][pack][channel][v_time[run][pack][channel].size()-1];
+          Int_t ntbins = timehigh / timebin + 1;
+
+          hdiodevtime[run][pack][channel] = new TH1F(hname,htitle,
+                                                     ntbins,
+                                                     timelow,timehigh);
+
+          // set axis labels
+          hdiodevtime[run][pack][channel]->GetXaxis()->SetTitle("time (s)");
+          hdiodevtime[run][pack][channel]->GetYaxis()->
+            SetTitle("current (A)");
+          hdiodevtime[run][pack][channel]->Sumw2();
+        }
+      } // end loop through channels    
+    } // end loop through packs
+
+    // loop through OK packs
+    for (Int_t pack = 0; pack < nOKpacks; ++pack) {
+
+      // set electronic board number
+      Int_t eboard = 0;
+
+      // convert from TString to string for pack names
+      string npack = OKpackname[run][pack];
+
+      irradfile->cd();
+
+      sprintf(hname,"h%s_ratio",npack.c_str());
+      sprintf(htitle,"%s ratios",
+              npack.c_str());
+
+      hOKratio[run][pack] = new TH1F(hname,htitle,
+                                     12,
+                                     1.,
+                                     13.);
+
+      // set directory name to pack name
+      sprintf(dirname,"%s",npack.c_str());
+
+      // create pack directory in pedestal directory
+      cdpinpack = cdped->mkdir(dirname);
+
+      // move to that directory
+      cdpinpack->cd();
+
+      // create pedestal histograms
+
+      // binning for pedestals
+      Double_t pedres = 0.001;
+      Int_t padding = 100;
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // set echannel
+        Int_t echannel = channel;
+
+        // pre pedestals
+        sprintf(hname,"h%s_c%d_ped_pre",npack.c_str(),channel);
+        sprintf(htitle,"%s channel %d current pedestal pre (b%dc%d)",
+                npack.c_str(),channel+3,eboard+1,echannel+1);
+
+        // find min and max values
+        Double_t pedlow = *min_element(v_OKpedcurr[run][pack][channel].begin(),
+                                       v_OKpedcurr[run][pack][channel].end());
+        Double_t pedhigh = *max_element(v_OKpedcurr[run][pack][channel].
+                                        begin(),
+                                        v_OKpedcurr[run][pack][channel].end());
+
+        // find ped res
+        Double_t npedbins = (pedhigh - pedlow) / pedres;
+        //Double_t npedbins = 4;
+        //pedres = (pedhigh - pedlow) / npedbins;
+
+        hOKped_pre[run][pack][channel] = new TH1F(hname,htitle,
+                                                  npedbins+padding*2,
+                                                  pedlow-padding*pedres,
+                                                  pedhigh+padding*pedres);
+        
+        // set axis labels
+        hOKped_pre[run][pack][channel]->GetXaxis()->SetTitle("current (mA)");
+        hOKped_pre[run][pack][channel]->GetYaxis()->SetTitle("entries");
+
+        pedres = 0.001;
+        
+        // post pedestals
+        sprintf(hname,"h%s_c%d_ped_post",npack.c_str(),channel);
+        sprintf(htitle,"%s channel %d current pedestal post (b%dc%d)",
+                npack.c_str(),channel+3,eboard+1,echannel+1);
+        
+        // find min and max values
+        pedlow = *min_element(v_OKpedcurr_post[run][pack][channel].begin(),
+                              v_OKpedcurr_post[run][pack][channel].end());
+        pedhigh = *max_element(v_OKpedcurr_post[run][pack][channel].begin(),
+                               v_OKpedcurr_post[run][pack][channel].end());
+
+        // find ped res
+        npedbins = (pedhigh - pedlow) / pedres;
+        
+        hOKped_post[run][pack][channel] = new TH1F(hname,htitle,
+                                                   npedbins+padding*2,
+                                                   pedlow-padding*pedres,
+                                                   pedhigh+padding*pedres);
+        
+        // set axis labels
+        hOKped_post[run][pack][channel]->GetXaxis()->SetTitle("current (mA)");
+        hOKped_post[run][pack][channel]->GetYaxis()->SetTitle("entries");
+
+        // mid pedestals
+        if (run == 1) { 
+          sprintf(hname,"h%s_c%d_ped_mid",npack.c_str(),channel);
+          sprintf(htitle,"%s channel %d current pedestal mid (b%dc%d)",
+                  npack.c_str(),channel+3,eboard+1,echannel+1);
+
+          // find min and max values
+          pedlow = *min_element(v_OKpedcurr_mid[pack][channel].begin(),
+                                v_OKpedcurr_mid[pack][channel].end());
+          pedhigh = *max_element(v_OKpedcurr_mid[pack][channel].begin(),
+                                 v_OKpedcurr_mid[pack][channel].end());
+
+          // find ped res
+          npedbins = (pedhigh - pedlow) / pedres;
+
+          hOKped_mid[pack][channel] = new TH1F(hname,htitle,
+                                               npedbins+padding*2,
+                                               pedlow-padding*pedres,
+                                               pedhigh+padding*pedres);
+
+          // set axis labels
+          hOKped_mid[pack][channel]->GetXaxis()->SetTitle("current (mA)");
+          hOKped_mid[pack][channel]->GetYaxis()->SetTitle("entries");
+        }
+      } // end loop through channels
+
+      // create pack directory in ped vs. time directory
+      cdpinpack = cdpedvtime->mkdir(dirname);
+
+      // move to that directory
+      cdpinpack->cd();
+
+      // create pedestal vs time histograms
+
+      // binning for pedestals
+      Int_t npedvtimebins = v_OKpedcurr[run][0][0].size();
+      Int_t npedmidvtimebins = v_OKpedcurr_mid[0][0].size();
+      Int_t npedpostvtimebins = v_OKpedcurr_post[run][0][0].size();
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // set echannel
+        Int_t echannel = channel;
+
+        // pre pedestals
+        sprintf(hname,"h%s_c%d_pvt_pre",npack.c_str(),channel);
+        sprintf(htitle,
+                "%s channel %d current pedestal vs. time pre (b%dc%d)",
+                npack.c_str(),channel+3,eboard+1,echannel+1);
+
+
+        hOKped_prevtime[run][pack][channel] = new TH1F(hname,htitle,
+                                                       npedvtimebins+1,
+                                                       0.,npedvtimebins+1);
+
+        // set axis labels
+        hOKped_prevtime[run][pack][channel]->GetXaxis()->
+          SetTitle("pseudotime");
+        hOKped_prevtime[run][pack][channel]->GetYaxis()->
+          SetTitle("current (mA)");
+        hOKped_prevtime[run][pack][channel]->Sumw2();
+
+        // post pedestals
+        sprintf(hname,"h%s_c%d_pvt_post",npack.c_str(),channel);
+        sprintf(htitle,
+                "%s channel %d current pedestal vs. time post (b%dc%d)",
+                npack.c_str(),channel+3,eboard+1,echannel+1);
+
+
+        hOKped_postvtime[run][pack][channel] = 
+          new TH1F(hname,htitle,
+                   npedpostvtimebins+1,
+                   0.,npedpostvtimebins+1);
+
+        // set axis labels
+        hOKped_postvtime[run][pack][channel]->GetXaxis()->
+          SetTitle("pseudotime");
+        hOKped_postvtime[run][pack][channel]->GetYaxis()->
+          SetTitle("current (mA)");
+        hOKped_postvtime[run][pack][channel]->Sumw2();
+
+        //mid pedestals
+        if (run == 1) {
+          sprintf(hname,"h%s_c%d_pvt_mid",npack.c_str(),channel);
+          sprintf(htitle,
+                  "%s channel %d current pedestal vs. time mid (b%dc%d)",
+                  npack.c_str(),channel+3,eboard+1,echannel+1);
+          
+          hOKped_midvtime[pack][channel] = new TH1F(hname,htitle,
+                                                    npedmidvtimebins+1,
+                                                    0.,npedmidvtimebins+1);
+
+          // set axis labels
+          hOKped_midvtime[pack][channel]->GetXaxis()->SetTitle("pseudotime");
+          hOKped_midvtime[pack][channel]->GetYaxis()->
+            SetTitle("current (mA)");
+          hOKped_midvtime[pack][channel]->Sumw2();
+        }
+      } // end loop through channels      
+
+      // create pack directory in current vs time directory
+      cdpinpack = cdcvt->mkdir(dirname);
+
+      // move to that directory
+      cdpinpack->cd();
+
+      // create current vs. histograms
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // set echannel
+        Int_t echannel = channel;
+
+        sprintf(hname,"h%s_c%d_cvt",npack.c_str(),channel);
+        sprintf(htitle,"%s channel %d current vs. time (b%dc%d)",
+                npack.c_str(),channel+3,eboard+1,echannel+1);
+
+        // determine histogram limits and binning
+        map<Int_t,Int_t>::iterator iter = 
+          m_OKtimebin[run][pack][channel].begin();
+
+        Int_t timebin = iter->first;
+        Double_t timelow = v_OKtime[run][pack][channel][0];
+        Double_t timehigh =
+          v_OKtime[run][pack][channel][v_OKtime[run][pack][channel].size()-1];
+        Int_t ntbins = timehigh / timebin + 1;
+
+        // create histogram
+        hOKcvt[run][pack][channel] =
+          new TH1F(hname,htitle,ntbins,timelow,timehigh);
+
+        // set axis labels
+        hOKcvt[run][pack][channel]->GetXaxis()->SetTitle("time (s)");
+        hOKcvt[run][pack][channel]->GetYaxis()->SetTitle("current (mA)");
+        hOKcvt[run][pack][channel]->GetYaxis()->SetTitleOffset(1.2);
+        hOKcvt[run][pack][channel]->Sumw2();
+      } // end loop through channels
+
+      // create pack directory in diode vs. time directory
+
+      // convert from TString to string for pack names
+      string ndiode = OKdiodename[run][pack];
+
+      // set directory name to pack name
+      sprintf(dirname,"%s",ndiode.c_str());
+
+      cdpinpack = cddiodevtime->mkdir(dirname);
+
+      // move to that directory
+      cdpinpack->cd();
+
+      // create diode vs time histograms
+
+      // binning for pedestals
+      Int_t ndiodevtimebins = v_OKdiodecurr[run][0][0].size();
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // set echannel
+        Int_t echannel = channel;
+
+        // pre pedestals
+        sprintf(hname,"h%s_c%d_diodevt",ndiode.c_str(),channel);
+        sprintf(htitle,"%s channel %d current diode vs. time (b%dc%d)",
+                ndiode.c_str(),channel+3,eboard+1,echannel+1);
+
+        if (fullVCSELdiode) {
+          hOKdiodevtime[run][pack][channel] = new TH1F(hname,htitle,
+                                                       ndiodevtimebins+1,
+                                                       0.,ndiodevtimebins+1);
+
+          // set axis labels
+          hOKdiodevtime[run][pack][channel]->GetXaxis()->
+            SetTitle("pseudotime");
+          hOKdiodevtime[run][pack][channel]->GetYaxis()->
+            SetTitle("current (A)");
+          hOKdiodevtime[run][pack][channel]->Sumw2();
+        } else {
+
+          // determine histogram limits and binning
+          map<Int_t,Int_t>::iterator iter =
+            m_OKtimebin[run][pack][channel].begin();
+          
+          Int_t timebin = iter->first;
+          Double_t timelow = v_OKtime[run][pack][channel][0];
+          Double_t timehigh = 
+            v_OKtime[run][pack][channel][v_OKtime[run][pack][channel].size()-1];
+          Int_t ntbins = timehigh / timebin + 1;
+
+          hOKdiodevtime[run][pack][channel] = new TH1F(hname,htitle,
+                                                     ntbins,
+                                                     timelow,timehigh);
+
+          // set axis labels
+          hOKdiodevtime[run][pack][channel]->GetXaxis()->SetTitle("time (s)");
+          hOKdiodevtime[run][pack][channel]->GetYaxis()->
+            SetTitle("current (A)");
+          hOKdiodevtime[run][pack][channel]->Sumw2();
+        }
+      } // end loop through channels    
+    } // end loop through OK packs
+
+    // sigmas from pedestals
+    cdped->cd();
+
+    for (Int_t board = 0; board < nboards; ++board) {
+      sprintf(hname,"hsigmas_r%d_b%d",run+1,board+1);
+      sprintf(htitle,"sigma by channel board %d",board+1);
+
+      hsigmas[run][board] = new TH1F(hname,htitle,
+                                      npacks/2.*nchannelsperpack+1,
+                                      0.,npacks/2.*nchannelsperpack+1);
+
+      // set axis labels
+      hsigmas[run][board]->GetXaxis()->SetTitle("channel");
+      hsigmas[run][board]->GetYaxis()->SetTitle("sigma");
+      hsigmas[run][board]->Sumw2();
+    }
+
+  } // end loop through runs
+
+  /////////////////////////////////////////////////////////////////////////////
+  // fill pedestal histograms
+  // loop through runs
+  ofile[0] << "Filling pedestal histograms" << endl;
+
+  for (Int_t run = 0; run < nruns; ++run) {
+
+    // loop through the packs
+    for (Int_t pack = 0; pack < npacks; ++pack) {
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // fill pedestals
+        // loop through data
+        for (Int_t i = 0; i < v_pedcurr[run][pack][channel].size(); ++i) {
+          hped_pre[run][pack][channel]->
+            Fill(v_pedcurr[run][pack][channel][i]);
+        }
+
+        for (Int_t i = 0; i < v_pedcurr_post[run][pack][channel].size(); ++i) {
+          hped_post[run][pack][channel]->
+            Fill(v_pedcurr_post[run][pack][channel][i]);
+        }
+
+        if (run == 1) {
+          for (Int_t i = 0; i < v_pedcurr_mid[pack][channel].size();
+               ++i) {
+            hped_mid[pack][channel]->
+              Fill(v_pedcurr_mid[pack][channel][i]);
+          }
+        } // check for mid
+      } // end loop through channels
+    } // end loop through packs
+
+    // loop through the OK packs
+    for (Int_t pack = 0; pack < nOKpacks; ++pack) {
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // fill pedestals
+        // loop through data
+        for (Int_t i = 0; i < v_OKpedcurr[run][pack][channel].size(); ++i) {
+          hOKped_pre[run][pack][channel]->
+            Fill(v_OKpedcurr[run][pack][channel][i]);
+        }
+
+        for (Int_t i = 0; i < v_OKpedcurr_post[run][pack][channel].size();
+             ++i) {
+          hOKped_post[run][pack][channel]->
+            Fill(v_OKpedcurr_post[run][pack][channel][i]);
+        }
+
+        if (run == 1) {
+          for (Int_t i = 0; i < v_OKpedcurr_mid[pack][channel].size();
+               ++i) {
+            hOKped_mid[pack][channel]->
+              Fill(v_OKpedcurr_mid[pack][channel][i]);
+          }
+        } // check for mid
+      } // end loop through channels
+    } // end loop through OK packs
+
+  } // end loop through runs
+
+  /////////////////////////////////////////////////////////////////////////////
+  // fit peds and extract means and errors
+  ofile[0] << "Extracting pedestal sigmas" << endl;
+
+  // store pedestal values
+  Double_t pedmean[nruns][npacks][nchannelsperpack],
+    pedsigma[nruns][npacks][nchannelsperpack],
+    pedsigmaerror[nruns][npacks][nchannelsperpack],
+    pedmeandef[nruns][npacks][nchannelsperpack],
+    pedsigmadef[nruns][npacks][nchannelsperpack];
+
+  Double_t OKpedmean[nruns][nOKpacks][nchannelsperpack],
+    OKpedsigma[nruns][nOKpacks][nchannelsperpack],
+    OKpedsigmaerror[nruns][nOKpacks][nchannelsperpack],
+    OKpedmeandef[nruns][nOKpacks][nchannelsperpack],
+    OKpedsigmadef[nruns][nOKpacks][nchannelsperpack];
+
+  // get mean and sigma of pedestals 
+  // loop through runs
+  for (Int_t run = 0; run < nruns; ++run) {
+
+    // loop through packs
+    for (Int_t pack = 0; pack < npacks; ++pack) {
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        /*
+        // fit with a guassian
+        hped_pre[run][pack][channel]->Fit("gaus");
+        pedmean[run][pack][channel] = 
+          hped_pre[run][pack][channel]->GetFunction("gaus")->GetParameter(1);
+        pedsigma[run][pack][channel] = 
+          hped_pre[run][pack][channel]->GetFunction("gaus")->GetParameter(2);
+        */
+
+        // extract from histogram
+        pedmean[run][pack][channel] = hped_pre[run][pack][channel]->
+          GetMean(); 
+        pedsigma[run][pack][channel] = hped_pre[run][pack][channel]->
+          GetRMS();
+        pedsigmaerror[run][pack][channel] = hped_pre[run][pack][channel]->
+          GetRMSError();
+
+        // use dummy info
+        pedmeandef[run][pack][channel] = 0.0;
+        pedsigmadef[run][pack][channel] = 1e-3;
+
+      } // end loop through channels   
+    } // end loop through packs
+
+   // loop through OK packs
+    for (Int_t pack = 0; pack < nOKpacks; ++pack) {
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        /*
+        // fit with a guassian
+        hOKped_pre[run][pack][channel]->Fit("gaus");
+        OKpedmean[run][pack][channel] = 
+          hOKped_pre[run][pack][channel]->GetFunction("gaus")->GetParameter(1);
+        OKpedsigma[run][pack][channel] = 
+          hOKped_pre[run][pack][channel]->GetFunction("gaus")->GetParameter(2);
+        */
+  
+        // extract from histogram
+        OKpedmean[run][pack][channel] = hOKped_pre[run][pack][channel]->
+          GetMean();
+        OKpedsigma[run][pack][channel] = hOKped_pre[run][pack][channel]->
+          GetRMS();
+        OKpedsigmaerror[run][pack][channel] = hOKped_pre[run][pack][channel]->
+          GetRMSError();        
+    
+        // use dummy info
+        OKpedmeandef[run][pack][channel] = 0.0;
+        OKpedsigmadef[run][pack][channel] = 1e-3;
+
+      } // end loop through channels   
+    } // end loop through packs
+
+  } // end loop through runs
+
+  /////////////////////////////////////////////////////////////////////////////
+  // fill pedestal vs time histograms
+  ofile[0] << "Filling pedestal vs. time histograms" << endl;
+  if (fullVCSELdiode) {
+    ofile[0] << "Filling vcsel vs. time histograms" << endl;
+    ofile[0] << "Filling diode vs. time histograms" << endl;
+  }
+  // loop through runs
+  for (Int_t run = 0; run < nruns; ++run) {
+
+    // loop through the packs
+    for (Int_t pack = 0; pack < npacks; ++pack) {
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // fill pedestals vs. time
+        // loop through data
+        for (Int_t i = 0; i < v_pedcurr[run][pack][channel].size(); ++i) {
+          hped_prevtime[run][pack][channel]->
+            SetBinContent(i+1,v_pedcurr[run][pack][channel][i]);
+          hped_prevtime[run][pack][channel]->
+            SetBinError(i+1,pedsigmadef[run][pack][channel]);
+        }
+
+        for (Int_t i = 0; i < v_pedcurr_post[run][pack][channel].size(); ++i) {
+          hped_postvtime[run][pack][channel]->
+            SetBinContent(i+1,v_pedcurr_post[run][pack][channel][i]);
+          hped_postvtime[run][pack][channel]->
+            SetBinError(i+1,pedsigmadef[run][pack][channel]);
+        }
+
+        if (run == 1) {
+          for (Int_t i = 0; i < v_pedcurr_mid[pack][channel].size();
+               ++i) {
+            hped_midvtime[pack][channel]->
+              SetBinContent(i+1,v_pedcurr_mid[pack][channel][i]);
+            hped_midvtime[pack][channel]->
+              SetBinError(i+1,pedsigmadef[run][pack][channel]);
+          }
+        }
+
+        if (fullVCSELdiode) {
+          // fill vcsel vs. time
+          // loop through data
+          for (Int_t i = 0; i < v_vcselcurr[run][pack][channel].size(); ++i) {
+            hvcselvtime[run][pack][channel]->
+              SetBinContent(i+1,v_vcselcurr[run][pack][channel][i]);
+            hvcselvtime[run][pack][channel]->
+              SetBinError(i+1,1e-6);
+          }
+
+          // fill diode vs. time
+          // loop through data
+          for (Int_t i = 0; i < v_diodecurr[run][pack][channel].size(); ++i) {
+            hdiodevtime[run][pack][channel]->
+              SetBinContent(i+1,v_diodecurr[run][pack][channel][i]);
+            hdiodevtime[run][pack][channel]->
+              SetBinError(i+1,1e-9);
+          }
+        }
+  
+        // fill sigma vs channel
+        Int_t board, channelbin;
+        if (pack == 0 || pack == 1 || pack == 2 || pack == 3) {
+          board = 0;
+          channelbin = 8*pack+channel;
+        } else {
+          board = 1;
+          channelbin = 8*(pack-4)+channel;
+        }
+       
+        hsigmas[run][board]-> 
+          SetBinContent(channelbin,pedsigma[run][pack][channel]);
+        hsigmas[run][board]->
+          SetBinError(channelbin,pedsigmaerror[run][pack][channel]); 
+
+      } // end loop through channels
+    } // end loop through packs
+
+    // loop through OK packs
+    for (Int_t pack = 0; pack < nOKpacks; ++pack) {
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // fill pedestals vs. time
+        // loop through data
+        for (Int_t i = 0; i < v_OKpedcurr[run][pack][channel].size(); ++i) {
+          hOKped_prevtime[run][pack][channel]->
+            SetBinContent(i+1,v_OKpedcurr[run][pack][channel][i]);
+          hOKped_prevtime[run][pack][channel]->
+            SetBinError(i+1,OKpedsigmadef[run][pack][channel]);
+        }
+
+        for (Int_t i = 0; i < v_OKpedcurr_post[run][pack][channel].size();
+             ++i) {
+          hOKped_postvtime[run][pack][channel]->
+            SetBinContent(i+1,v_OKpedcurr_post[run][pack][channel][i]);
+          hOKped_postvtime[run][pack][channel]->
+            SetBinError(i+1,OKpedsigmadef[run][pack][channel]);
+        }
+
+        if (run == 1) {
+          for (Int_t i = 0; i < v_OKpedcurr_mid[pack][channel].size();
+               ++i) {
+            hOKped_midvtime[pack][channel]->
+              SetBinContent(i+1,v_OKpedcurr_mid[pack][channel][i]);
+            hOKped_midvtime[pack][channel]->
+              SetBinError(i+1,OKpedsigmadef[run][pack][channel]);
+          }
+        }
+      }
+    } // end loop through OK packs
+  } // end loop through runs
+
+  /////////////////////////////////////////////////////////////////////////////
+  // fill fill current vs. time
+  ofile[0] << "Filling current vs. time histograms" << endl;
+  if (!fullVCSELdiode) {
+    ofile[0] << "Filling vcsel vs. time histograms" << endl;
+    ofile[0] << "Filling diode vs. time histograms" << endl;
+  }
+  // loop through runs
+  for (Int_t run = 0; run < nruns; ++run) {
+
+    // loop through the packs
+    for (Int_t pack = 0; pack < npacks; ++pack) {
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // use proper limits
+        Int_t ntbins = hcvt[run][pack][channel]->GetNbinsX();
+
+        Int_t curbin = 1;
+
+        // loop through data
+        for (Int_t i = 0; i < v_time[run][pack][channel].size(); ++i) {
+
+          Double_t time = v_time[run][pack][channel][i];
+
+          // loop through time bins, ignoring bins already filled
+          for (Int_t timebin = curbin; timebin <= ntbins; ++timebin) {
+
+            // get time limits for this bin
+            Double_t timelowedge, timehighedge, timewidth;
+            timelowedge = hcvt[run][pack][channel]->GetBinLowEdge(timebin);
+            timewidth = hcvt[run][pack][channel]->GetBinWidth(timebin);
+            timehighedge = timelowedge + timewidth;
+
+            // increment lower limit of time bins to consider
+            ++curbin;
+
+            // determine if current time is within bin
+            if (time >= timelowedge && time <= timehighedge) {
+
+              hcvt[run][pack][channel]->
+                SetBinContent(timebin,v_curr[run][pack][channel][i]);
+              hcvt[run][pack][channel]->
+                //SetBinError(timebin,pedsigma[run][pack][channel]);
+                SetBinError(timebin,1e-6);
+
+              if (!fullVCSELdiode) {
+
+                // fill vcsel vs. time
+                hvcselvtime[run][pack][channel]->
+                  SetBinContent(timebin,v_vcselcurr[run][pack][channel][i]);
+                hvcselvtime[run][pack][channel]->
+                  SetBinError(timebin,1e-6);
+
+                // fill diode vs. time
+                hdiodevtime[run][pack][channel]->
+                  SetBinContent(timebin,v_diodecurr[run][pack][channel][i]);
+                hdiodevtime[run][pack][channel]->
+                  SetBinError(timebin,1e-9);
+              }
+
+              break; // go to next data point
+            } // end check for time
+          } // end loop through time bins
+        } // end loop through data
+      } // end loop through channels
+    } // end loop through packs 
+  
+    // loop through OK packs
+    for (Int_t pack = 0; pack < nOKpacks; ++pack) {
+      
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+        
+        // use proper limits
+        Int_t ntbins = hOKcvt[run][pack][channel]->GetNbinsX();
+
+        Int_t curbin = 1;
+
+        // loop through data
+        for (Int_t i = 0; i < v_OKtime[run][pack][channel].size(); ++i) {
+          
+          Double_t time = v_OKtime[run][pack][channel][i];
+
+          // loop through time bins, ignoring bins already filled
+          for (Int_t timebin = curbin; timebin <= ntbins; ++timebin) {
+            
+            // get time limits for this bin
+            Double_t timelowedge, timehighedge, timewidth;
+            timelowedge = hOKcvt[run][pack][channel]->GetBinLowEdge(timebin);
+            timewidth = hOKcvt[run][pack][channel]->GetBinWidth(timebin);
+            timehighedge = timelowedge + timewidth;
+
+            // increment lower limit of time bins to consider
+            ++curbin;
+
+            // determine if current time is within bin
+            if (time >= timelowedge && time <= timehighedge) {
+              
+              hOKcvt[run][pack][channel]->
+                SetBinContent(timebin,v_OKcurr[run][pack][channel][i]);
+              hOKcvt[run][pack][channel]->
+                //SetBinError(timebin,OKpedsigma[run][pack][channel]);
+                SetBinError(timebin,1e-6);
+
+              if (!fullVCSELdiode) {
+
+                // fill diode vs. time
+                hOKdiodevtime[run][pack][channel]->
+                  SetBinContent(timebin,v_OKdiodecurr[run][pack][channel][i]);
+                hOKdiodevtime[run][pack][channel]->
+                  SetBinError(timebin,1e-9);
+              }       
+
+              break; // go to next data point
+            } // end check for time
+          } // end loop through time bins
+        } // end loop through data
+      } // end loop through channels
+    } // end loop through OK packs 
+
+  } // end loop through runs
+
+  /////////////////////////////////////////////////////////////////////////////
+  // fit current vs. time functions
+  ofile[0] << "Fitting current vs. time histograms" << endl;
+
+  Double_t I_o[nruns][npacks][nchannelsperpack];
+  Double_t I_f[nruns][npacks][nchannelsperpack];
+  Double_t eI_o[nruns][npacks][nchannelsperpack];
+  Double_t eI_f[nruns][npacks][nchannelsperpack];
+  Double_t eR[nruns][npacks][nchannelsperpack];
+
+  // create canvas
+  TCanvas *fitCanvas;
+  fitCanvas = new TCanvas("test","test");
+
+  // open output ps file
+  TString filename = "output/fit";
+  TString psfile = filename+".ps";
+  TString psfileopen = filename+".ps[";
+  TString psfileclose = filename+".ps]";
+  fitCanvas->Print(psfileopen);
+
+  //Int_t run = 1;
+  //Int_t pack = 0;
+  //Int_t channel = 2;
+
+  // loop through runs
+  for (Int_t run = 0; run < nruns; ++run) {
+
+    // loop through the packs
+    for (Int_t pack = 0; pack < npacks; ++pack) {
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // use RooFit to perform fitting
+        Int_t ncurrbins = hcvt[run][pack][channel]->GetNbinsX();
+        Double_t upperlimit =
+          hcvt[run][pack][channel]->GetBinLowEdge(ncurrbins+1);
+        Double_t binwidth = hcvt[run][pack][channel]->GetBinWidth(1);
+
+        // data variables
+        char t_name[80];
+        char I_name[80];
+        sprintf(t_name,"t_%i_%i_%i",run,pack,channel);
+        sprintf(I_name,"I_%i_%i_%i",run,pack,channel);
+        RooRealVar t(t_name,"t (sec)",0.,upperlimit);
+        RooRealVar I(I_name,"I (mA)",0.,1.0);
+        char ivt_name[80];
+        sprintf(ivt_name,"Ivt_%i_%i_%i",run,pack,channel);
+        RooArgSet Ivt(t,I,ivt_name);
+        RooDataSet data;
+        RooDataSet data_start;
+        RooDataSet data_end;
+
+        Double_t startlimit;
+        Double_t endlimit;
+
+        if (run == 0) {
+          startlimit = 40000;
+          endlimit = 520000;
+        }
+        
+        if ((run == 0) && (pack == 3) && (channel == 5)) {
+          startlimit = 20000;
+        } else if ((run == 0) && (pack == 4) && (channel == 6)) {
+          endlimit = 530000; 
+        } else if ((run == 0) && (pack == 5) && (channel == 6)) {
+          startlimit = 20000;
+        } else if ((run == 0) && (pack == 7) && (channel == 3)) {
+          endlimit = 530000;      
+        } else if ((run == 0) && (pack == 7) && (channel == 7)) {
+          startlimit = 20000;
+          endlimit = 530000;
+        }
+
+        if (run == 1) {
+          startlimit = 60000;
+          endlimit = 525000;
+        } 
+        
+        // create frame
+        RooPlot* tframe;
+        tframe = t.frame();
+        
+        // fit variables
+        char As_name[80];
+        sprintf(As_name,"As_%i_%i_%i",run,pack,channel);
+        RooRealVar A_start(As_name,"Coefficient 1",-1.e6,1.e6);
+        char Bs_name[80];
+        sprintf(Bs_name,"Bs_%i_%i_%i",run,pack,channel);
+        RooRealVar B_start(Bs_name,"Coefficient 2",-1.e6,1.e6);
+        RooArgList params(t,A_start,B_start);
+        char fit_start_name[80];
+        sprintf(fit_start_name,"fit_start_%i_%i_%i",run,pack,channel);
+        RooFormulaVar
+          fit_start(fit_start_name,"fit start","@1/(1.+@2*@0)",params);
+
+        char Ae_name[80];
+        sprintf(Ae_name,"Ae_%i_%i_%i",run,pack,channel);       
+        RooRealVar A_end(Ae_name,"Coefficient 1",-1.e6,1.e6);
+        char Be_name[80];
+        sprintf(Be_name,"Be_%i_%i_%i",run,pack,channel);
+        RooRealVar B_end(Be_name,"Coefficient 2",-1.e6,1.e6);
+        RooArgList params2(t,A_end,B_end);
+        char fit_end_name[80];
+        sprintf(fit_end_name,"fit_end_%i_%i_%i",run,pack,channel);
+        RooFormulaVar fit_end(fit_end_name,
+                              "fit end","@1/(1.+@2*@0)",params2);
+
+        // fill dataset
+        char data_name[80];
+        sprintf(data_name,"data_%i_%i_%i",run,pack,channel);
+        data = new RooDataSet(data_name,"test channel",Ivt,StoreError(Ivt));
+        char datas_name[80];
+        sprintf(datas_name,"datas_%i_%i_%i",run,pack,channel);
+        data_start = new RooDataSet(datas_name,"test channel",
+                                    Ivt,StoreError(Ivt));
+        char datae_name[80];
+        sprintf(datae_name,"datae_%i_%i_%i",run,pack,channel);
+        data_end = new RooDataSet(datae_name,"test channel",
+                                  Ivt,StoreError(Ivt));
+        for (Int_t i = 0; i < v_time[run][pack][channel].size(); ++i) {
+
+          t = v_time[run][pack][channel][i];
+          I = v_curr[run][pack][channel][i];
+
+          t.setError(binwidth);
+          I.setError(pedsigma[run][pack][channel]);
+
+          data.add(Ivt);
+
+          // fit for start region
+          if ((run == 0) && (pack == 4) && (channel == 2)) {
+            if ((v_time[run][pack][channel][i] > 60000) &&
+                (v_time[run][pack][channel][i] <= 80000))
+              data_start.add(Ivt);
+          } else if (v_time[run][pack][channel][i] <= startlimit) {
+            data_start.add(Ivt);
+          }
+
+          // fit for end region
+          if (v_time[run][pack][channel][i] >= endlimit) data_end.add(Ivt);
+
+        }
+
+        // plot data
+        //data.plotOnXY(tframe,YVar(I),MarkerStyle(1));
+
+        // perform fit
+        RooFitResult* start_result =
+          fit_start.chi2FitTo(data_start,YVar(I),FitOptions("r"));
+        RooFitResult* end_result =
+          fit_end.chi2FitTo(data_end,YVar(I),FitOptions("r"));
+
+        // plot fits
+        //fit_start.plotOn(tframe,LineColor(kBlue));
+        //fit_end.plotOn(tframe,LineColor(kRed));
+
+        //tframe->SetTitle("test");
+        //tframe->GetYaxis()->SetTitle("I (mA)");
+        //tframe->Draw();
+        //fitCanvas->Print(psfile);
+
+        // extract fit results
+        const RooArgList& start_result_list = start_result->floatParsFinal();
+        //start_result_list.Print("s");
+        Int_t index = start_result_list.index(As_name);
+        Float_t fAvalue = ((RooRealVar*)start_result_list.at(index))->getVal();
+        const TMatrixDSym& start_result_cov = start_result->covarianceMatrix();
+        Float_t fAvalue_err = sqrt(start_result_cov[0][0]);
+        index = start_result_list.index(Bs_name);
+        Float_t fBvalue = ((RooRealVar*)start_result_list.at(index))->getVal();
+        Float_t fBvalue_err = sqrt(start_result_cov[1][1]);
+        I_o[run][pack][channel] = fAvalue;
+        //start_result_cov.Print("s");
+        char func_start[80];
+        sprintf(func_start,"%g / (1. + %g * x)",fAvalue,fBvalue);
+
+        // error on I_o
+        Float_t dfdA = 1.;
+        Float_t dfdB = 0.;
+        Float_t dI_o2 = dfdA * dfdA * start_result_cov[0][0] +
+          dfdB * dfdB * start_result_cov[1][1] +
+          2. * dfdA * dfdB * start_result_cov[0][1];
+        eI_o[run][pack][channel] = sqrt(dI_o2);
+                
+        cout << "Fit result for start fit: " << endl;
+        cout << "  A = " << fAvalue << " +/- " << fAvalue_err << endl;
+        cout << "  B = " << fBvalue << " +/- " << fBvalue_err << endl;
+        cout << "  I_o = " << I_o[run][pack][channel]
+             << " +/- " << eI_o[run][pack][channel] << endl << endl;
+
+        const RooArgList& end_result_list = end_result->floatParsFinal();
+        index = end_result_list.index(Ae_name);
+        fAvalue = ((RooRealVar*)end_result_list.at(index))->getVal();
+        const TMatrixDSym& end_result_cov = end_result->covarianceMatrix();
+        fAvalue_err = sqrt(end_result_cov[0][0]);
+        index = end_result_list.index(Be_name);
+        fBvalue = ((RooRealVar*)end_result_list.at(index))->getVal();
+        fBvalue_err = sqrt(end_result_cov[1][1]);
+        I_f[run][pack][channel] = fAvalue / (1.+fBvalue*upperlimit);
+        char func_end[80];
+        sprintf(func_end,"%g / (1. + %g * x)",fAvalue,fBvalue);         
+
+        // error on I_f
+        dfdA = 1. / (1. + fBvalue * upperlimit);
+        dfdB = -1. * fAvalue * upperlimit /
+          pow((1. + fBvalue * upperlimit),2.);
+        Float_t dI_f2 = dfdA * dfdA * end_result_cov[0][0] +
+          dfdB * dfdB * end_result_cov[1][1] +
+          2. * dfdA * dfdB * end_result_cov[0][1];
+        eI_f[run][pack][channel] = sqrt(dI_f2);
+
+        cout << "Fit result for end fit: " << endl;
+        cout << "  A = " << fAvalue << " +/- " << fAvalue_err << endl;
+        cout << "  B = " << fBvalue << " +/- " << fBvalue_err << endl;
+        cout << "  I_f = " << I_f[run][pack][channel]
+             << " +/- " << eI_f[run][pack][channel] << endl << endl;
+
+
+        // error on ratio
+        Float_t dR2 = 1. / pow(I_o[run][pack][channel],2.) * dI_o2
+          + pow(I_f[run][pack][channel] / I_o[run][pack][channel],2.) * dI_f2;
+        eR[run][pack][channel] = sqrt(dR2);
+
+        cout << "Ratio = " 
+             << I_f[run][pack][channel] / I_o[run][pack][channel]
+             << " +/- " << eR[run][pack][channel] << endl;
+
+        // draw data and fits
+        hcvt[run][pack][channel]->Draw();
+        char func_start_name[80];
+        sprintf(func_start_name,"fs_%i_%i_%i",run,pack,channel);
+        if ((run == 0) && (pack == 4) && (channel == 2)) {
+          TF1 f1(func_start_name,func_start,0.,80000);
+          //TF1 f1(func_start_name,func_start,0.,0.50*upperlimit);
+        } else {
+          TF1 f1(func_start_name,func_start,0.,startlimit);
+          //TF1 f1(func_start_name,func_start,0.,0.50*upperlimit);
+        }
+        f1.SetLineColor(kBlue);
+        char func_end_name[80];
+        sprintf(func_end_name,"fe_%i_%i_%i",run,pack,channel);
+        TF1 f2(func_end_name,func_end,endlimit,upperlimit);
+        //TF1 f2(func_end_name,func_end,0.50*upperlimit,upperlimit);
+        f2.SetLineColor(kRed);
+        f1.Draw("same");
+        f2.Draw("same");
+        fitCanvas->Print(psfile);
+
+        // fill ratio histograms
+        hratio[run][pack]->SetBinContent(channel+3,
+                              I_f[run][pack][channel]/I_o[run][pack][channel]);
+        hratio[run][pack]->SetBinError(channel+3,
+                              eR[run][pack][channel]);
+        hratio[run][pack]->SetBinError(channel+3,1e-6);
+        hratio[run][pack]->SetMarkerStyle(20);
+        hratio[run][pack]->SetMarkerSize(1);
+        hratio[run][pack]->SetMarkerColor(kBlue);
+
+      } // loop channels
+
+      hratio[run][pack]->Draw();
+      fitCanvas->Print(psfile);
+    } // loop packs
+  } // loop runs        
+
+  //close output ps file
+  fitCanvas->Print(psfileclose);
+
+  /////////////////////////////////////////////////////////////////////////////
+  // fit current vs. time functions
+  ofile[0] << "Fitting OK current vs. time histograms" << endl;
+
+  Double_t OKI_o[nruns][nOKpacks][nchannelsperpack];
+  Double_t OKI_f[nruns][nOKpacks][nchannelsperpack];
+  Double_t OKeI_o[nruns][npacks][nchannelsperpack];
+  Double_t OKeI_f[nruns][npacks][nchannelsperpack];
+  Double_t OKeR[nruns][npacks][nchannelsperpack];
+
+  // create canvas
+  TCanvas *OKfitCanvas;
+  OKfitCanvas = new TCanvas("test","test");
+
+  // open output ps file
+  TString filename = "output/OKfit";
+  TString psfile = filename+".ps";
+  TString psfileopen = filename+".ps[";
+  TString psfileclose = filename+".ps]";
+  OKfitCanvas->Print(psfileopen);
+
+  //Int_t run = 1;
+  //Int_t pack = 0;
+  //Int_t channel = 0;
+
+  // loop through runs
+  for (Int_t run = 0; run < nruns; ++run) {
+
+    // loop through the packs
+    for (Int_t pack = 0; pack < nOKpacks; ++pack) {
+
+      // loop through channels
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+        // use RooFit to perform fitting
+        Int_t ncurrbins = hOKcvt[run][pack][channel]->GetNbinsX();
+        Double_t upperlimit = 
+          hOKcvt[run][pack][channel]->GetBinLowEdge(ncurrbins+1);
+        Double_t binwidth = hOKcvt[run][pack][channel]->GetBinWidth(1);
+
+        // data variables
+        char t_name[80];
+        char I_name[80];
+        sprintf(t_name,"OKt_%i_%i_%i",run,pack,channel);
+        sprintf(I_name,"OKI_%i_%i_%i",run,pack,channel);
+        RooRealVar t(t_name,"t (sec)",0.,upperlimit);
+        RooRealVar I(I_name,"I (mA)",0.,1.0);
+        char ivt_name[80];
+        sprintf(ivt_name,"OKIvt_%i_%i_%i",run,pack,channel);
+        RooArgSet Ivt(t,I,ivt_name);
+        RooDataSet data;
+        RooDataSet data_start;
+        RooDataSet data_end;
+        
+        Double_t startlimit;
+        Double_t endlimit;
+  
+        if (run == 0) {
+          startlimit = 40000;
+          endlimit = 520000;
+        }
+                
+        if (run == 1) {
+          startlimit = 60000;
+          endlimit = 525000;
+        }
+        
+        // create frame
+        RooPlot* tframe;
+        tframe = t.frame();
+
+        // fit variables
+        char As_name[80];
+        sprintf(As_name,"OKAs_%i_%i_%i",run,pack,channel);
+        RooRealVar A_start(As_name,"Coefficient 1",-1.e6,1.e6);
+        char Bs_name[80];
+        sprintf(Bs_name,"OKBs_%i_%i_%i",run,pack,channel);
+        RooRealVar B_start(Bs_name,"Coefficient 2",-1.e6,1.e6);
+        RooArgList params(t,A_start,B_start);
+        char fit_start_name[80];
+        sprintf(fit_start_name,"OKfit_start_%i_%i_%i",run,pack,channel);
+        RooFormulaVar
+          fit_start(fit_start_name,"fit start","@1/(1.+@2*@0)",params);
+        char Ae_name[80];
+        sprintf(Ae_name,"OKAe_%i_%i_%i",run,pack,channel);
+        RooRealVar A_end(Ae_name,"Coefficient 1",-1.e6,1.e6);
+        char Be_name[80];
+        sprintf(Be_name,"OKBe_%i_%i_%i",run,pack,channel);
+        RooRealVar B_end(Be_name,"Coefficient 2",-1.e6,1.e6);
+        RooArgList params2(t,A_end,B_end);
+        char fit_end_name[80];
+        sprintf(fit_end_name,"OKfit_end_%i_%i_%i",run,pack,channel);
+        RooFormulaVar fit_end(fit_end_name,
+                              "fit end","@1/(1.+@2*@0)",params2);     
+
+        // fill dataset
+        char data_name[80];
+        sprintf(data_name,"OKdata_%i_%i_%i",run,pack,channel);
+        data = new RooDataSet(data_name,"test channel",Ivt,StoreError(Ivt));
+        char datas_name[80];
+        sprintf(datas_name,"OKdatas_%i_%i_%i",run,pack,channel);
+        data_start = new RooDataSet(datas_name,"test channel",
+                                    Ivt,StoreError(Ivt));
+        char datae_name[80];
+        sprintf(datae_name,"OKdatae_%i_%i_%i",run,pack,channel);
+        data_end = new RooDataSet(datae_name,"test channel",
+                                  Ivt,StoreError(Ivt));
+
+        for (Int_t i = 0; i < v_OKtime[run][pack][channel].size(); ++i) {
+
+          t = v_OKtime[run][pack][channel][i];
+          I = v_OKcurr[run][pack][channel][i];
+
+          t.setError(binwidth);
+          I.setError(OKpedsigma[run][pack][channel]);
+
+          data.add(Ivt);
+
+          // fit for start region
+          if (v_OKtime[run][pack][channel][i] <= startlimit)
+            data_start.add(Ivt);
+
+          // fit for end region
+          if (v_OKtime[run][pack][channel][i] >= endlimit)
+            data_end.add(Ivt);
+        }
+
+        // plot data
+        //data.plotOnXY(tframe,YVar(I),MarkerStyle(1));
+
+        // perform fit
+        RooFitResult* start_result =
+          fit_start.chi2FitTo(data_start,YVar(I),FitOptions("r"));
+        RooFitResult* end_result =
+          fit_end.chi2FitTo(data_end,YVar(I),FitOptions("r"));
+
+        // plot fits
+        //fit_start.plotOn(tframe,LineColor(kBlue));
+        //fit_end.plotOn(tframe,LineColor(kRed));
+
+        //tframe->SetTitle("test");
+        //tframe->GetYaxis()->SetTitle("I (mA)");
+        //tframe->Draw();
+        //fitCanvas->Print(psfile);
+
+        // extract fit results
+        const RooArgList& start_result_list = start_result->floatParsFinal();
+        //start_result_list.Print("s");
+        Int_t index = start_result_list.index(As_name);
+        Float_t fAvalue = ((RooRealVar*)start_result_list.at(index))->getVal();
+        const TMatrixDSym& start_result_cov = start_result->covarianceMatrix();
+        Float_t fAvalue_err = sqrt(start_result_cov[0][0]);
+        index = start_result_list.index(Bs_name);
+        Float_t fBvalue = ((RooRealVar*)start_result_list.at(index))->getVal();
+        Float_t fBvalue_err = sqrt(start_result_cov[1][1]);
+        OKI_o[run][pack][channel] = fAvalue;
+        //start_result_cov.Print("s");
+        char func_start[80];
+        sprintf(func_start,"%g / (1. + %g * x)",fAvalue,fBvalue);
+
+        // error on I_o
+        Float_t dfdA = 1.;
+        Float_t dfdB = 0.;
+        Float_t dI_o2 = dfdA * dfdA * start_result_cov[0][0] +
+          dfdB * dfdB * start_result_cov[1][1] +
+          2. * dfdA * dfdB * start_result_cov[0][1];
+        OKeI_o[run][pack][channel] = sqrt(dI_o2);
+
+        cout << "Fit result for start fit: " << endl;
+        cout << "  A = " << fAvalue << " +/- " << fAvalue_err << endl;
+        cout << "  B = " << fBvalue << " +/- " << fBvalue_err << endl;
+        cout << "  I_o = " << OKI_o[run][pack][channel]
+             << " +/- " << OKeI_o[run][pack][channel] << endl << endl;
+
+        const RooArgList& end_result_list = end_result->floatParsFinal();
+        index = end_result_list.index(Ae_name);
+        fAvalue = ((RooRealVar*)end_result_list.at(index))->getVal();
+        const TMatrixDSym& end_result_cov = end_result->covarianceMatrix();
+        fAvalue_err = sqrt(end_result_cov[0][0]);
+        index = end_result_list.index(Be_name);
+        fBvalue = ((RooRealVar*)end_result_list.at(index))->getVal();
+        fBvalue_err = sqrt(end_result_cov[1][1]);
+        OKI_f[run][pack][channel] = fAvalue / (1.+fBvalue*upperlimit);
+        char func_end[80];
+        sprintf(func_end,"%g / (1. + %g * x)",fAvalue,fBvalue);
+
+        // error on I_f
+        dfdA = 1. / (1. + fBvalue * upperlimit);
+        dfdB = -1. * fAvalue * upperlimit /
+          pow((1. + fBvalue * upperlimit),2.);
+        Float_t dI_f2 = dfdA * dfdA * end_result_cov[0][0] +
+          dfdB * dfdB * end_result_cov[1][1] +
+          2. * dfdA * dfdB * end_result_cov[0][1];
+        OKeI_f[run][pack][channel] = sqrt(dI_f2);
+
+        cout << "Fit result for end fit: " << endl;
+        cout << "  A = " << fAvalue << " +/- " << fAvalue_err << endl;
+        cout << "  B = " << fBvalue << " +/- " << fBvalue_err << endl;
+        cout << "  I_f = " << OKI_f[run][pack][channel]
+             << " +/- " << OKeI_f[run][pack][channel] << endl << endl;
+
+        Float_t dR2 = 1. / pow(I_o[run][pack][channel],2.) * dI_o2
+          + pow(I_f[run][pack][channel] / I_o[run][pack][channel],2.) * dI_f2;
+        OKeR[run][pack][channel] = sqrt(dR2);
+
+        cout << "Ratio = "
+             << OKI_f[run][pack][channel] / OKI_o[run][pack][channel]
+             << " +/- " << OKeR[run][pack][channel] << endl;
+
+        // draw data and fits
+        hOKcvt[run][pack][channel]->Draw();
+        char func_start_name[80];
+        sprintf(func_start_name,"OKfs_%i_%i_%i",run,pack,channel);
+        TF1 f1(func_start_name,func_start,0.,startlimit);
+        //TF1 f1(func_start_name,func_start,0.,0.50*upperlimit);
+        f1.SetLineColor(kBlue);
+        char func_end_name[80];
+        sprintf(func_end_name,"OKfe_%i_%i_%i",run,pack,channel);
+        TF1 f2(func_end_name,func_end,endlimit,upperlimit);
+        //TF1 f2(func_end_name,func_end,0.50*upperlimit,upperlimit);
+        f2.SetLineColor(kRed);
+        f1.Draw("same");
+        f2.Draw("same");
+        OKfitCanvas->Print(psfile);
+
+        // fill ratio histograms
+        hOKratio[run][pack]->
+          SetBinContent(channel+3,
+                        OKI_f[run][pack][channel]/OKI_o[run][pack][channel]);
+        hOKratio[run][pack]->SetBinError(channel+3,
+                                         OKeR[run][pack][channel]);
+        hOKratio[run][pack]->SetBinError(channel+3,1e-6);
+        hOKratio[run][pack]->SetMarkerStyle(20);
+        hOKratio[run][pack]->SetMarkerSize(1);
+        hOKratio[run][pack]->SetMarkerColor(kBlue);
+
+      } // loop channels
+      hOKratio[run][pack]->Draw();
+      OKfitCanvas->Print(psfile);
+    } // loop packs
+  } // loop runs
+
+  //close output ps file
+  OKfitCanvas->Print(psfileclose);
+
+  /////////////////////////////////////////////////////////////////////////////
+  // output values for each pack and channel
+  for (Int_t run = 0; run < nruns; ++run) {
+    for (Int_t pack = 0; pack < npacks; ++pack) {
+      ofile[1] << "******************************" << endl;
+      ofile[1] << packname[run][pack] << ":" << endl;
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+        ofile[1] << "   channel " << channel+3 << ":" << endl;
+
+        // pedestal information
+        ofile[1] << "      pedestal mean  " << pedmean[run][pack][channel]
+                 << endl;
+        ofile[1] << "               sigma " << pedsigma[run][pack][channel]
+                 << endl;
+        ofile[1] << "      I_o  " << I_o[run][pack][channel]
+                 << " +/- " << eI_o[run][pack][channel] << endl;
+        ofile[1] << "      I_f  " << I_f[run][pack][channel]
+                 << " +/- " << eI_f[run][pack][channel] << endl;
+        if (I_o[run][pack][channel] != 0)
+          ofile[1] << "      I_f / I_o  "
+                   << I_f[run][pack][channel] / I_o[run][pack][channel]
+                   << " +/- " << eR[run][pack][channel] << endl;
+
+        ofile[1] << endl;
+      } // end loop through channels
+      ofile[1] << endl;
+    } // end loop through packs
+
+    for (Int_t pack = 0; pack < nOKpacks; ++pack) {
+      ofile[1] << "******************************" << endl;
+      ofile[1] << OKpackname[run][pack] << ":" << endl;
+      for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+        ofile[1] << "   channel " << channel+3 << ":" << endl;
+
+        // pedestal information
+        ofile[1] << "      pedestal mean  " << OKpedmean[run][pack][channel]
+                 << endl;
+        ofile[1] << "               sigma " << OKpedsigma[run][pack][channel]
+                 << endl;
+        ofile[1] << "      I_o  " << OKI_o[run][pack][channel]
+                 << " +/- " << OKeI_o[run][pack][channel] << endl;
+        ofile[1] << "      I_f  " << OKI_f[run][pack][channel]
+                 << " +/- " << OKeI_f[run][pack][channel] << endl;
+        if (OKI_o[run][pack][channel] != 0)
+          ofile[1] << "      I_f / I_o  " 
+                   << OKI_f[run][pack][channel] / OKI_o[run][pack][channel]
+                   << " +/- " << eR[run][pack][channel] << endl;
+
+        ofile[1] << endl;
+      } // end loop through channels
+      ofile[1] << endl;
+    } // end loop through packs
+
+  } // end loop through runs
+
+  /////////////////////////////////////////////////////////////////////////////
+  // store plots in pdf file
+
+  if (preparepdf) {
+    ofile[0] << "Opening output ps file" << endl;
+
+    // create canvas
+    TCanvas *myCanvas;
+    myCanvas = new TCanvas("analyze","analyze");
+    
+    // loop through the runs
+    for (Int_t run = 0; run < nruns; ++run) {
+
+      // open output ps file
+      TString filename = "output/irrad09";
+      if (run == 1) filename = filename+"-r2";
+      TString psfile = filename+".ps";
+      TString psfileopen = filename+".ps[";
+      TString psfileclose = filename+".ps]";
+      myCanvas->Print(psfileopen);
+
+      ofile[0] << "Filling output ps file for run " << run+1 << endl;
+
+      // loop through the packs
+      for (Int_t pack = 0; pack < npacks; ++pack) {
+
+        // loop through channels
+        for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+          // store ped plot
+          hped_pre[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+          
+          // store ped vs. time plot
+          hped_prevtime[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+          
+          // store current vs. time plot
+          hcvt[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+
+          if (run == 1) {
+            // store ped mid plot
+            hped_mid[pack][channel]->Draw();
+            myCanvas->Print(psfile);
+
+          // store ped mid vs. time plot
+            hped_midvtime[pack][channel]->Draw();
+            myCanvas->Print(psfile);
+          }
+
+          // store ped post plot
+          hped_post[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+
+          // store ped post vs. time plot
+          hped_postvtime[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+
+        } // end loop through channel
+      } // end loop through packs
+
+      // loop through OK packs
+      for (Int_t pack = 0; pack < nOKpacks; ++pack) {
+
+        // loop through channels
+        for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+          // store ped plot
+          hOKped_pre[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+
+          // store ped vs. time plot
+          hOKped_prevtime[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+
+          // store current vs. time plot
+          hOKcvt[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+
+          if (run == 1) {
+            // store ped mid plot
+            hOKped_mid[pack][channel]->Draw();
+            myCanvas->Print(psfile);
+
+            // store ped mid vs. time plot
+            hOKped_midvtime[pack][channel]->Draw();
+            myCanvas->Print(psfile);
+          }
+
+          // store ped post plot
+          hOKped_post[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+
+          // store ped post vs. time plot
+          hOKped_postvtime[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+
+        } // end loop through channel
+      } // end loop through packs
+
+     for (Int_t board = 0; board < nboards; ++board) {
+        hsigmas[run][board]->Draw();
+        myCanvas->Print(psfile);
+      }
+
+      ofile[0] << "Closing output ps file" << endl;
+
+      //close output ps file
+      myCanvas->Print(psfileclose);
+
+      //ofile[0] << "Converting ps to pdf" << endl;
+      //
+      //convert to pdf
+      //TString cmnd;
+      //cmnd = "ps2pdf "+psfile+" "+filename+".pdf";
+      //gSystem->Exec(cmnd);
+      //cmnd = "rm "+psfile;
+      //gSystem->Exec(cmnd);
+    } // end loop through run
+
+    // output vcsel and diode info
+    // loop through the runs
+    for (Int_t run = 0; run < nruns; ++run) {
+
+      // open output ps file
+      TString filename = "output/irrad09_vcselanddiode";
+      if (fullVCSELdiode) filename = filename+"_full";
+      if (run == 1) filename = filename+"-r2";
+      TString psfile = filename+".ps";
+      TString psfileopen = filename+".ps[";
+      TString psfileclose = filename+".ps]";
+      myCanvas->Print(psfileopen);
+
+      ofile[0] << "Filling VCSEL and diode output ps file for run " << run+1
+               << endl;
+
+      // loop through the packs
+      for (Int_t pack = 0; pack < npacks; ++pack) {
+
+        // loop through channels
+        for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+          // store vcsel vs. time plot
+          hvcselvtime[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+
+          // store diode vs. time plot
+          hdiodevtime[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+        } // end loop through channel
+      } // end loop through packs
+
+      // loop through OK packs
+      for (Int_t pack = 0; pack < nOKpacks; ++pack) {
+
+        // loop through channels
+        for (Int_t channel = 0; channel < nchannelsperpack; ++channel) {
+
+          // store diode vs. time plot
+          hOKdiodevtime[run][pack][channel]->Draw();
+          myCanvas->Print(psfile);
+        } // end loop through channel
+      } // end loop through packs
+
+      ofile[0] << "Closing output ps file" << endl;
+
+      //close output ps file
+      myCanvas->Print(psfileclose);
+
+      //ofile[0] << "Converting ps to pdf" << endl;
+      //
+      //convert to pdf
+      //TString cmnd;
+      //cmnd = "ps2pdf "+psfile+" "+filename+".pdf";
+      //gSystem->Exec(cmnd);
+      //cmnd = "rm "+psfile;
+      //gSystem->Exec(cmnd);
+    } // end loop through run
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // save output
+  ofile[0] << "Closing output root file" << endl;
+  irradfile->Write();
+
+  /////////////////////////////////////////////////////////////////////////////
+  // cleanup
+  delete irradfile;
+
+  cout << "Closing input files" << endl;
+  for (Int_t file = 0; file < nifiles; ++file) {
+    ifile[file].close();
+  }
+
+  cout << "Closing output files" << endl;
+  for (Int_t file = 0; file < nofiles; ++file) {
+    ofile[file].close();
+  }
+
+  return 0;
+}
